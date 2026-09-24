@@ -24,36 +24,53 @@ const Login = () => {
     }
   };
 
+  let delayIndex = 0;
+
   return (
-    <div className="container">
-      <div className="card">
-        <h1>🏍️ QuickRide</h1>
-        <p>Login to continue</p>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          {error && <p className="error-text">{error}</p>}
-          <button type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-        <p className="link-text">
-          New here? <Link to="/register">Create an account</Link>
-        </p>
+    <>
+      <div className="side-brand" aria-hidden="true">
+        {["Quick", "Ride"].map((word, wi) => (
+          <div className="side-brand-word" key={wi}>
+            {word.split("").map((ch, i) => {
+              const d = delayIndex++;
+              return (
+                <span key={i} style={{ animationDelay: `${d * 0.09}s` }}>{ch}</span>
+              );
+            })}
+          </div>
+        ))}
       </div>
-    </div>
+
+      <div className="container auth-center">
+        <div className="card">
+          <h1>🏍️ QuickRide</h1>
+          <p>Login to continue</p>
+          <form onSubmit={handleSubmit}>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            {error && <p className="error-text">{error}</p>}
+            <button type="submit" disabled={loading}>
+              {loading ? "Logging in..." : "Login"}
+            </button>
+          </form>
+          <p className="link-text">
+            New here? <Link to="/register">Create an account</Link>
+          </p>
+        </div>
+      </div>
+    </>
   );
 };
 

@@ -8,7 +8,21 @@ const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 router.put("/toggle-online", protect, authorizeRoles("driver"), async (req, res) => {
   try {
     const driver = await User.findById(req.user._id);
-    driver.isOnline = !driver.isOnline;
+    const goingOnline = !driver.isOnline;
+
+    if (goingOnline) {
+      const [lng, lat] = driver.currentLocation?.coordinates || [0, 0];
+      if (lng === 0 && lat === 0) {
+        return res.status(400).json({
+          message: "Location not set. Please enable location access before going online.",
+        });
+      }
+    }
+
+    driver.isOnline = goingOnline;
+    if (!goingOnline) {
+      driver.isAvailable = true; // reset when going offline, so driver never stays stuck as "busy"
+    }
     await driver.save();
     return res.json({ isOnline: driver.isOnline });
   } catch (err) {

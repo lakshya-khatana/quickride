@@ -27,7 +27,6 @@ const getDistanceKm = ([lng1, lat1], [lng2, lat2]) => {
 const requestRide = async (req, res) => {
   try {
     const { pickup, destination, vehicleType } = req.body;
-    // pickup/destination: { address, coordinates: [lng, lat] }
 
     if (!pickup?.coordinates || !destination?.coordinates) {
       return res.status(400).json({ message: "Pickup and destination coordinates are required" });
@@ -46,7 +45,6 @@ const requestRide = async (req, res) => {
       status: "requested",
     });
 
-    // Find nearest available driver within 5km using geospatial query
     const nearbyDrivers = await User.find({
       role: "driver",
       isOnline: true,
@@ -54,14 +52,13 @@ const requestRide = async (req, res) => {
       currentLocation: {
         $near: {
           $geometry: { type: "Point", coordinates: pickup.coordinates },
-          $maxDistance: 5000, // 5 km in meters
+          $maxDistance: Number(process.env.DRIVER_MATCH_RADIUS_METERS) || 5000,
         },
       },
     }).limit(5);
 
     const populatedRide = await ride.populate("rider", "name phone rating");
 
-    // Emit to nearby drivers via Socket.io (set up in socket.js / server.js)
     const io = req.app.get("io");
     nearbyDrivers.forEach((driver) => {
       io.to(`driver_${driver._id}`).emit("newRideRequest", populatedRide);
@@ -109,7 +106,7 @@ const acceptRide = async (req, res) => {
 // @route PUT /api/rides/:id/status
 const updateRideStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, cancelReason } = req.body;
     const allowed = ["driver_arrived", "ongoing", "completed", "cancelled"];
     if (!allowed.includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
@@ -120,11 +117,13 @@ const updateRideStatus = async (req, res) => {
 
     ride.status = status;
     if (status === "completed") {
-      ride.paymentStatus = "paid"; // simplified — hook real payment gateway here
+      ride.paymentStatus = "paid";
+    }
+    if (status === "cancelled" && cancelReason) {
+      ride.cancelReason = cancelReason;
     }
     await ride.save();
 
-    // Free up the driver once ride ends
     if (["completed", "cancelled"].includes(status) && ride.driver) {
       await User.findByIdAndUpdate(ride.driver, { isAvailable: true });
     }
@@ -144,7 +143,7 @@ const updateRideStatus = async (req, res) => {
 // @route PUT /api/rides/:id/rate
 const rateRide = async (req, res) => {
   try {
-    const { rating } = req.body; // 1-5
+    const { rating } = req.body;
     const ride = await Ride.findById(req.params.id);
     if (!ride) return res.status(404).json({ message: "Ride not found" });
     if (ride.status !== "completed") {
@@ -161,7 +160,6 @@ const rateRide = async (req, res) => {
     }
     await ride.save();
 
-    // Update running average rating on target user
     const target = await User.findById(targetUserId);
     if (target) {
       const newCount = target.ratingCount + 1;

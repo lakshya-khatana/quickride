@@ -19,6 +19,11 @@ const initSocket = (io) => {
       io.to(`rider_${riderId}`).emit("driverLocationUpdate", { rideId, lng, lat });
     });
 
+    // Rider streams live location too, so the driver can see where to pick them up
+    socket.on("riderLocationUpdate", ({ rideId, driverId, lng, lat }) => {
+      io.to(`driver_${driverId}`).emit("riderLocationUpdate", { rideId, lng, lat });
+    });
+
     socket.on("disconnect", () => {
       console.log("Socket disconnected:", socket.id);
     });

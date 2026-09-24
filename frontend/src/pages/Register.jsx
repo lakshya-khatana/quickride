@@ -34,7 +34,7 @@ const Register = () => {
   };
 
   return (
-    <div className="container">
+    <div className="container auth-center">
       <div className="card">
         <h1>🏍️ QuickRide</h1>
         <p>Create your account</p>
